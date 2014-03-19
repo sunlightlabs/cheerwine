@@ -20,38 +20,36 @@ def _uwsgi(settings):
     defaults = {'workers': 4, 'chmod': 666, 'no_orphans': 'true', 'master': 'true',
                 'uid': env.PROJECT_NAME, 'gid': env.PROJECT_NAME,
                 'home': '/projects/{}/virt/'.format(env.PROJECT_NAME)}
+    lines = []
     defaults.update(settings)
-    lines = ['[uwsgi]']
     for key, val in sorted(defaults.items()):
         if isinstance(val, (tuple, list)):
             for item in val:
                 lines.append('{} = {}'.format(key, item))
         else:
             lines.append('{} = {}'.format(key, val))
-    return '\n'.join(lines)
+    return jinja.get_template('uwsgi').render(lines=lines)
 
 
-def nginx(server_name=None, port=80, locations=None):
-    if not locations:
-        locations = []
+def uwsgi_nginx(uwsgi_settings=None, server_name=None, port=80, locations=None):
+    # install both and then remove default configured site
+    _install(['nginx', 'uwsgi'])
+    sudo('rm -f /etc/nginx/sites-enabled/default')
+
+    # uwsgi stuff
+    uwsgi_contents = _uwsgi(uwsgi_settings or {})
+    write_configfile(uwsgi_contents, '/etc/uwsgi/apps-enabled/{}.ini'.format(env.PROJECT_NAME))
+
+    # nginx stuff
     tmpl = jinja.get_template('nginx')
-    nginx_contents = tmpl.render(port=port, server_name=server_name, locations=locations,
+    nginx_contents = tmpl.render(port=port, server_name=server_name, locations=locations or [],
                                  project_name=env.PROJECT_NAME)
     write_configfile(nginx_contents, '/etc/nginx/sites-enabled/{}'.format(env.PROJECT_NAME))
 
 
-def uwsgi(uwsgi=None):
-    _install(['nginx', 'uwsgi'])
-    # remove default configured site
-    sudo('rm /etc/nginx/sites-enabled/default')
-
-    if not uwsgi:
-        uwsgi = {}
-    uwgi_contents = _uwsgi(uwsgi)
-    write_configfile(uwgi_contents, '/etc/uwsgi/apps-enabled/{}.ini'.format(env.PROJECT_NAME))
-
 def python():
     _install(['uwsgi-plugin-python', 'python-dev', 'python-virtualenv'])
+
 
 def python3():
     _install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))
