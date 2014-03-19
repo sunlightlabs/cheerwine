@@ -14,13 +14,14 @@ ff02::2 ip6-allrouters
 ff02::3 ip6-allhosts
 # the hostname and its peers
 127.0.0.1 {0}\n""".format(hostname)
-    for name, ip in peers:
-        contents += '{0} {1}\n'.format(ip, name)
+    if peers:
+        for name, ip in sorted(peers.items()):
+            contents += '{0} {1}\n'.format(ip, name)
     return contents
 
 
-def set_hostname(hostname):
-    """ set the hostname """
+def set_hosts(hostname, peers=None):
+    """ set hostname and place peers in /etc/hosts """
     with hide('running', 'stdout'):
         curhost = run('cat /etc/hostname')
     _info('setting hostname...')
@@ -32,13 +33,7 @@ def set_hostname(hostname):
             sudo('start hostname')
     else:
         _good('already set!')
-
-
-def set_hosts(hostname):
-    """ set /etc/hosts """
-    hosts = [(name, data['internal_ip']) for name, data in env.SERVERS.items()
-             if name != hostname]
-    contents = _etc_hosts(hostname, hosts)
+    contents = _etc_hosts(hostname, peers or [])
     write_configfile(contents, '/etc/hosts')
 
 
@@ -50,6 +45,7 @@ def add_superuser(user, directory):
     copy_dir(directory, '/home/{0}/'.format(user), user)
 
 
+# KILL?
 def connect(hostname):
     """ open a connection to the server in question """
     server = env.SERVERS[hostname]
@@ -62,10 +58,14 @@ def upgrade():
     sudo('aptitude update')
     sudo('aptitude upgrade -y')
 
-
 def install(packages):
     """ install a package """
     sudo('aptitude install -y {0}'.format(' '.join(packages)))
+
+
+def install_base(additional):
+    upgrade()
+    install(('xfsprogs', 'build-essential', 'git', 'mercurial') + tuple(additional))
 
 
 def checkout(dirname, gitrepo, branch='master'):
@@ -75,6 +75,6 @@ def checkout(dirname, gitrepo, branch='master'):
 
 
 def update(dirname):
-    """ update all git repositories """
+    """ update git repository """
     with cd('~{}/src/{}'.format(env.PROJECT_NAME, dirname)):
         sudo('git pull', user=env.PROJECT_NAME)

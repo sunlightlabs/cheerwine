@@ -1,6 +1,6 @@
 from fabric.api import sudo, task, env
 from fabric.contrib.files import append
-from .utils import write_configfile
+from .utils import write_configfile, jinja
 from .aws import add_ebs as _add_ebs
 from .server import install as _install
 
@@ -30,44 +30,28 @@ def _uwsgi(settings):
             lines.append('{} = {}'.format(key, val))
     return '\n'.join(lines)
 
-def _nginx(server_name=None, port=80, locations=''):
-    if locations:
-        locations = ["\tlocation {} { root {}; }".format(loc, root) for loc, root in locations]
-        locations = '\n'.join(locations)
 
-    template = """server {
-    listen {port};
-    server_name _;
-    rewrite ^ $scheme://{server_name}$uri permanent;
-}
-
-server {
-    listen {port};
-    server_name {server_name};
-
-    location / {
-        uwsgi_pass unix:///projects/{project_name}/data/uwsgi.sock;
-        include uwsgi_params;
-    }
-
-    {locations}
-
-    access_log /projects/{project_name}/logs/access.log combined;
-    error_log /projects/{project_name}/logs/error.log;
-}"""
-    return template.format(port=port, server_name=server_name, locations=locations,
-                           project_name=env.PROJECT_NAME)
+def nginx(server_name=None, port=80, locations=None):
+    if not locations:
+        locations = []
+    tmpl = jinja.get_template('nginx')
+    nginx_contents = tmpl.render(port=port, server_name=server_name, locations=locations,
+                                 project_name=env.PROJECT_NAME)
+    write_configfile(nginx_contents, '/etc/nginx/sites-enabled/{}'.format(env.PROJECT_NAME))
 
 
 def uwsgi(uwsgi=None):
+    _install(['nginx', 'uwsgi'])
+    # remove default configured site
+    sudo('rm /etc/nginx/sites-enabled/default')
+
     if not uwsgi:
         uwsgi = {}
     uwgi_contents = _uwsgi(uwsgi)
     write_configfile(uwgi_contents, '/etc/uwsgi/apps-enabled/{}.ini'.format(env.PROJECT_NAME))
 
+def python():
+    _install(['uwsgi-plugin-python', 'python-dev', 'python-virtualenv'])
 
-def web():
-    """ configure a server as a web server """
-    _install(['nginx', 'uwsgi', 'uwsgi-plugin-python'])
-    # remove default configured site
-    sudo('rm /etc/nginx/sites-enabled/default')
+def python3():
+    _install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))

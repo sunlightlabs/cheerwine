@@ -1,0 +1,26 @@
+{% if server_name %}
+server {
+    listen {{port}};
+    server_name _;
+    rewrite ^ $scheme://{{server_name}}$uri permanent;
+}
+{% endif %}
+server {
+    listen {{port}};
+{% if server_name %}
+    server_name {{server_name}};
+{% endif %}
+
+    location / {
+        uwsgi_pass unix:///projects/{{project_name}}/data/uwsgi.sock;
+        include uwsgi_params;
+    }
+
+{% for loc, root in locations %}
+    location {{loc}} { root {{root}}; }
+{% endfor %}
+
+    access_log /projects/{{project_name}}/logs/access.log combined;
+    error_log /projects/{{project_name}}/logs/error.log;
+}
+

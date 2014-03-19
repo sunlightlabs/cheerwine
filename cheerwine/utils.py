@@ -1,11 +1,16 @@
 import os
 import tempfile
-from fabric.api import puts, sudo, put, hide, get, settings, local
+from fabric.api import puts, sudo, put, hide, get, settings, local, prompt
+from fabric.contrib.files import exists
 from fabric.colors import red, green, cyan
+from jinja2 import Environment, PackageLoader
 
 _info = lambda x: puts(cyan(x), show_prefix=False)
 _good = lambda x: puts(green(x), show_prefix=False)
 _bad = lambda x: puts(red(x), show_prefix=False)
+
+
+jinja = Environment(loader=PackageLoader('cheerwine', 'templates'))
 
 
 def copy_dir(local_dir, remote_dir, user=None):
@@ -33,17 +38,21 @@ def write_configfile(content, remote_path):
     with open(new, 'w') as f:
         f.write(content)
     with hide('running', 'stdout', 'stderr'):
-        get(remote_path, old)
-        with settings(hide('warnings'), warn_only=True):
-            res = local('diff {} {}'.format(old, new), capture=True)
-        if res.failed:
-            _bad('files differ')
-            puts(res, show_prefix=False)
-            if prompt('update file? [y/n]') == 'y':
-                _info('writing new {}...'.format(remote_path))
-                put(new, remote_path, use_sudo=True, mode=0644)
+        if exists(remote_path):
+            get(remote_path, old)
+            with settings(hide('warnings'), warn_only=True):
+                res = local('diff {} {}'.format(old, new), capture=True)
+            if res.failed:
+                _bad('files differ')
+                puts(res, show_prefix=False)
+                if prompt('update file? [y/n]') == 'y':
+                    _info('writing new {}...'.format(remote_path))
+                    put(new, remote_path, use_sudo=True, mode=0644)
+            else:
+                _good('files already match')
         else:
-            _good('files already match')
+            _good('no remote file exists, writing now')
+            put(new, remote_path, use_sudo=True, mode=0644)
 
     # remove files
     os.remove(new)
