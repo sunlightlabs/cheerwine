@@ -12,7 +12,7 @@ server {
 {% endif %}
 
     location / {
-        uwsgi_pass unix:///run/{{project_name}}.sock;
+        uwsgi_pass unix:///projects/{{project_name}}/data/uwsgi.sock;
         include uwsgi_params;
     }
 

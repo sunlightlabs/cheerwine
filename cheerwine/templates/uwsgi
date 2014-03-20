@@ -1,4 +1,10 @@
 [uwsgi]
+uid = {{user}}
+gid = {{user}}
+logto2 = /projects/{{user}}/logs/uwsgi.log
+socket = /projects/{{user}}/data/uwsgi.sock
+stats = /projects/{{user}}/data/stats.sock
+virtualenv = /projects/{{user}}/virt/
 {% for line in lines %}
 {{line}}
 {% endfor %}

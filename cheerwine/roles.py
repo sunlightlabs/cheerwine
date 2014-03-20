@@ -19,11 +19,7 @@ def mongodb(size_gb):
 def _uwsgi(module, pythonpath, env_vars, processes, extras):
     settings = {'master': 'true',
                 'vacuum': 'true',
-                'socket': '/run/%n.sock',
-                'stats': '/run/%n-stats.sock',
-                'uid': '%n',
-                'gid': '%n',
-                'virtualenv': '/projects/%n/virt/',
+                'chmod-socket': '666',
                 'module': module,
                 'pythonpath': pythonpath,
                 'env': env_vars,
@@ -38,7 +34,7 @@ def _uwsgi(module, pythonpath, env_vars, processes, extras):
                 lines.append('{} = {}'.format(key, item))
         else:
             lines.append('{} = {}'.format(key, val))
-    return jinja.get_template('uwsgi').render(lines=lines)
+    return jinja.get_template('uwsgi').render(user=env.PROJECT_NAME, lines=lines)
 
 
 def uwsgi_nginx(module, pythonpath=None, env_vars=None, processes=4, uwsgi_extras=None,
