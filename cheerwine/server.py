@@ -35,7 +35,7 @@ def set_hosts(hostname, peers=None):
     else:
         _good('already set!')
     contents = _etc_hosts(hostname, peers or [])
-    write_configfile(contents, '/etc/hosts')
+    write_configfile('/etc/hosts', content=contents)
 
 
 def add_superuser(user, directory):

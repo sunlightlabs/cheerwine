@@ -1,6 +1,9 @@
 import os
 import tempfile
-from fabric.api import puts, sudo, put, hide, get, settings, local, prompt
+from fabric.api import puts, put, hide, get, settings, prompt
+from fabric.api import sudo as _sudo
+from fabric.api import local as _local
+from fabric.api import run as _run
 from fabric.contrib.files import exists
 from fabric.colors import red, green, cyan
 from jinja2 import Environment, PackageLoader
@@ -19,41 +22,63 @@ def copy_dir(local_dir, remote_dir, user=None):
         # try and create directory if there are files to be put here
         if files:
             remote_root = os.path.join(remote_dir, root.replace(local_dir, ''))
-            sudo('mkdir -p {0}'.format(remote_root), user=user)
+            _sudo('mkdir -p {0}'.format(remote_root), user=user)
 
             # copy over files
             for file in files:
                 remote_file = os.path.join(remote_root, file)
                 put(os.path.join(root, file), remote_file, use_sudo=True, mirror_local_mode=True)
                 if user:
-                    sudo('chown {0}:{0} {1}'.format(user, remote_file))
+                    _sudo('chown {0}:{0} {1}'.format(user, remote_file))
 
 
-def write_configfile(content, remote_path):
-    _, new = tempfile.mkstemp()
+def write_configfile(remote_path, content=None, filename=None):
+    _info('attempting to write {}...'.format(remote_path))
+
+    rm_file = False
+    if not filename:
+        _, filename = tempfile.mkstemp()
+        rm_file = True
+        with open(filename, 'w') as f:
+            f.write(content)
+
     _, old = tempfile.mkstemp()
 
-    _info('checking {}...'.format(remote_path))
-
-    with open(new, 'w') as f:
-        f.write(content)
     with hide('running', 'stdout', 'stderr'):
         if exists(remote_path):
             get(remote_path, old)
             with settings(hide('warnings'), warn_only=True):
-                res = local('diff {} {}'.format(old, new), capture=True)
+                res = _local('diff {} {}'.format(old, filename), capture=True)
             if res.failed:
                 _bad('files differ')
                 puts(res, show_prefix=False)
                 if prompt('update file? [y/n]') == 'y':
                     _info('writing new {}...'.format(remote_path))
-                    put(new, remote_path, use_sudo=True, mode=0644)
+                    put(filename, remote_path, use_sudo=True, mode=0644)
             else:
                 _good('files already match')
         else:
             _good('no remote file exists, writing now')
-            put(new, remote_path, use_sudo=True, mode=0644)
+            put(filename, remote_path, use_sudo=True, mode=0644)
 
     # remove files
-    os.remove(new)
     os.remove(old)
+    if rm_file:
+        os.remove(filename)
+
+def run(cmd, local=True, sudo=False):
+    """ run cmd (locally unless local=False) """
+    if local:
+        if isinstance(sudo, str):
+            _local('sudo -u {} bash -c "{}"'.format(sudo, cmd))
+        elif sudo:
+            _local('sudo bash -c "{}"'.format(cmd))
+        else:
+            _local(cmd)
+    else:
+        if isinstance(sudo, str):
+            _sudo(cmd, user=sudo)
+        elif sudo:
+            _sudo(cmd)
+        else:
+            _run(cmd)

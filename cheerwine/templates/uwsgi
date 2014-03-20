@@ -5,6 +5,9 @@ logto2 = /projects/{{user}}/logs/uwsgi.log
 socket = /projects/{{user}}/data/uwsgi.sock
 stats = /projects/{{user}}/data/stats.sock
 virtualenv = /projects/{{user}}/virt/
+{% if settings %}
+env = DJANGO_SETTINGS_MODULE={{settings}}
+{% endif %}
 {% for line in lines %}
 {{line}}
 {% endfor %}
