@@ -3,18 +3,21 @@ from fabric.contrib.files import exists
 from .utils import _info
 
 
-def make_venv():
+def make_venv(python3=False):
     """ make a virtual environment """
     dirname = '/projects/{}/virt'.format(env.PROJECT_NAME)
     if exists(dirname):
         _info('directory {} already exists'.format(dirname))
     else:
-        sudo('virtualenv ' + dirname, user=env.PROJECT_NAME)
+        cmd = 'virtualenv ' + dirname
+        if python3:
+            cmd += ' -p python3'
+        sudo(cmd, user=env.PROJECT_NAME)
 
 
 def pip_install(package):
     """ install something into the virtualenv """
-    sudo('source ~{}/virt/bin/activate && pip install -r {}'.format(env.PROJECT_NAME, package))
+    sudo('source ~{}/virt/bin/activate && pip install {}'.format(env.PROJECT_NAME, package))
 
 
 def django(command):
