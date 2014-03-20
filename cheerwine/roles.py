@@ -1,5 +1,5 @@
 from fabric.api import sudo, task, env
-from fabric.contrib.files import append
+from fabric.contrib.files import append, exists
 from .utils import write_configfile, jinja
 from .aws import add_ebs as _add_ebs
 from .server import install as _install
@@ -16,13 +16,23 @@ def mongodb(size_gb):
     sudo('restart mongodb')
 
 
-def _uwsgi(settings):
-    defaults = {'workers': 4, 'chmod': 666, 'no_orphans': 'true', 'master': 'true',
-                'uid': env.PROJECT_NAME, 'gid': env.PROJECT_NAME,
-                'home': '/projects/{}/virt/'.format(env.PROJECT_NAME)}
+def _uwsgi(module, pythonpath, env_vars, processes, extras):
+    settings = {'master': 'true',
+                'vacuum': 'true',
+                'socket': '/run/%n.sock',
+                'stats': '/run/%n-stats.sock',
+                'uid': '%n',
+                'gid': '%n',
+                'virtualenv': '/projects/%n/virt/',
+                'module': module,
+                'pythonpath': pythonpath,
+                'env': env_vars,
+                'processes': processes,
+                # log-5xx, log-slow, disable-logging, log-x-forwarded-for, reload-on-rss
+               }
     lines = []
-    defaults.update(settings)
-    for key, val in sorted(defaults.items()):
+    settings.update(extras)
+    for key, val in sorted(settings.items()):
         if isinstance(val, (tuple, list)):
             for item in val:
                 lines.append('{} = {}'.format(key, item))
@@ -31,13 +41,15 @@ def _uwsgi(settings):
     return jinja.get_template('uwsgi').render(lines=lines)
 
 
-def uwsgi_nginx(uwsgi_settings=None, server_name=None, port=80, locations=None):
+def uwsgi_nginx(module, pythonpath=None, env_vars=None, processes=4, uwsgi_extras=None,
+                server_name=None, port=80, locations=None):
     # install both and then remove default configured site
     _install(['nginx', 'uwsgi'])
     sudo('rm -f /etc/nginx/sites-enabled/default')
 
     # uwsgi stuff
-    uwsgi_contents = _uwsgi(uwsgi_settings or {})
+    uwsgi_contents = _uwsgi(module=module, pythonpath=pythonpath or [], env_vars=env_vars or [],
+                            processes=processes, extras=uwsgi_extras or {})
     write_configfile(uwsgi_contents, '/etc/uwsgi/apps-enabled/{}.ini'.format(env.PROJECT_NAME))
 
     # nginx stuff

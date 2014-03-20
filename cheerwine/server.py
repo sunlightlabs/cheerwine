@@ -1,5 +1,6 @@
 from fabric.api import env, run, prompt, sudo, hide, open_shell, abort, cd, task
 from fabric.colors import red
+from fabric.contrib.files import append, exists
 from .utils import _info, _good, copy_dir, write_configfile
 
 
@@ -70,8 +71,12 @@ def install_base(additional):
 
 def checkout(dirname, gitrepo, branch='master'):
     """ check code out into project directory """
-    with cd('~{}/src'.format(env.PROJECT_NAME)):
-        sudo('git clone -b {} {} {}'.format(branch, gitrepo, dirname), user=env.PROJECT_NAME)
+    dirname = '~{}/src/{}'.format(env.PROJECT_NAME, dirname)
+    if exists(dirname):
+        _info('directory {} already exists'.format(dirname))
+    else:
+        with cd('~{}/src'.format(env.PROJECT_NAME)):
+            sudo('git clone -b {} {} {}'.format(branch, gitrepo, dirname), user=env.PROJECT_NAME)
 
 
 def update(dirname):

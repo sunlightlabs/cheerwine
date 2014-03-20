@@ -10,7 +10,7 @@ _good = lambda x: puts(green(x), show_prefix=False)
 _bad = lambda x: puts(red(x), show_prefix=False)
 
 
-jinja = Environment(loader=PackageLoader('cheerwine', 'templates'))
+jinja = Environment(loader=PackageLoader('cheerwine', 'templates'), trim_blocks=True)
 
 
 def copy_dir(local_dir, remote_dir, user=None):

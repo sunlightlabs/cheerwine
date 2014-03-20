@@ -1,9 +1,15 @@
 from fabric.api import sudo, env, task
+from fabric.contrib.files import exists
+from .utils import _info
 
 
 def make_venv():
     """ make a virtual environment """
-    sudo('virtualenv /projects/{}/virt'.format(env.PROJECT_NAME), user=env.PROJECT_NAME)
+    dirname = '/projects/{}/virt'.format(env.PROJECT_NAME)
+    if exists(dirname):
+        _info('directory {} already exists'.format(dirname))
+    else:
+        sudo('virtualenv ' + dirname, user=env.PROJECT_NAME)
 
 
 def pip_install(package):
