@@ -1,19 +1,7 @@
 from fabric.api import sudo, task, env
 from fabric.contrib.files import append, exists
 from .utils import write_configfile, jinja
-from .aws import add_ebs as _add_ebs
 from .server import install as _install
-
-
-def mongodb(size_gb):
-    """ configure a server with the latest MongoDB """
-    _add_ebs(size_gb, '/var/lib/mongodb/')
-    sudo('apt-key adv --keyserver keyserver.ubuntu.com --recv 7F0CEB10')
-    append('/etc/apt/sources.list.d/mongo.list',
-           'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen',
-           use_sudo=True)
-    _install(['mongodb-10gen'])
-    sudo('restart mongodb')
 
 
 def _uwsgi(module, settings_module, pythonpath, env_vars, processes, extras):

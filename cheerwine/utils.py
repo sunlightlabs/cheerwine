@@ -1,6 +1,6 @@
 import os
 import tempfile
-from fabric.api import puts, put, hide, get, settings, prompt
+from fabric.api import puts, put, hide, get, settings, prompt, env
 from fabric.api import sudo as _sudo
 from fabric.api import local as _local
 from fabric.api import run as _run
@@ -66,7 +66,7 @@ def write_configfile(remote_path, content=None, filename=None):
     if rm_file:
         os.remove(filename)
 
-def run(cmd, local=True, sudo=False):
+def cmd(cmd, sudo=None, local=getattr(env, 'CMD_LOCAL', True)):
     """ run cmd (locally unless local=False) """
     if local:
         if isinstance(sudo, str):
