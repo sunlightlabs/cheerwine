@@ -1,6 +1,5 @@
-from fabric.api import env, run, prompt, sudo, hide, open_shell, abort, cd, task
+from fabric.api import run, prompt, sudo, hide, abort
 from fabric.colors import red
-from fabric.contrib.files import append, exists
 from .utils import _info, _good, copy_dir, write_configfile
 
 
@@ -46,18 +45,11 @@ def add_superuser(user, directory):
     copy_dir(directory, '/home/{0}/'.format(user), user)
 
 
-# KILL?
-def connect(hostname):
-    """ open a connection to the server in question """
-    server = env.SERVERS[hostname]
-    env.host_string = 'ubuntu@' + server['public_dns']
-    open_shell()
-
-
 def upgrade():
     """ do a server upgrade """
     sudo('aptitude update')
     sudo('aptitude upgrade -y')
+
 
 def install(packages):
     """ install a package """
@@ -67,19 +59,3 @@ def install(packages):
 def install_base(additional):
     upgrade()
     install(('xfsprogs', 'build-essential', 'git', 'mercurial') + tuple(additional))
-
-
-def checkout(dirname, gitrepo, branch='master'):
-    """ check code out into project directory """
-    dirname = '~{}/src/{}'.format(env.PROJECT_NAME, dirname)
-    if exists(dirname):
-        _info('directory {} already exists'.format(dirname))
-    else:
-        with cd('~{}/src'.format(env.PROJECT_NAME)):
-            sudo('git clone -b {} {} {}'.format(branch, gitrepo, dirname), user=env.PROJECT_NAME)
-
-
-def update(dirname):
-    """ update git repository """
-    with cd('~{}/src/{}'.format(env.PROJECT_NAME, dirname)):
-        sudo('git pull', user=env.PROJECT_NAME)

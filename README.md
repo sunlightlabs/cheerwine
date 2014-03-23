@@ -10,6 +10,7 @@ it is just a little better than [sundrop](https://github.com/sunlightlabs/sundro
 Environment Variables:
 
 * env.PROJECT_NAME
+* env.CMD_LOCAL
 
 
 ### cheerwine.server - General Server Utils
@@ -18,7 +19,6 @@ Commands:
 
 * set_hosts(hostname, peers)
 * add_superuser(user, directory)
-* connect(hostname)
 * upgrade()
 * install(packages)
 * install_base(additional)
@@ -30,12 +30,17 @@ Commands:
 
 Commands:
 
-* mongodb(size_gb)
-* restart_nginx()
-* restart_uwsgi()
-* uwsgi_nginx(module, settings, pythonpath, env_vars, processes, uwsgi-extras, server_name, port=80, locations=None)
-* python
-* python3
+* mongodb.install(size_gb)
+* postgres.install(size_gb)
+* postgres.dropdb(name)
+* postgres.createdb(name, postgis=True, drop=False)
+* postgres.dropuser(name)
+* postgres.createuser(name, password, drop=False)
+* python.restart_nginx()
+* python.restart_uwsgi()
+* python.uwsgi_nginx(module, settings, pythonpath, env_vars, processes, uwsgi-extras, server_name, port=80, locations=None)
+* python.python
+* python.python3
 
 ### cheerwine.aws - Amazon Web Services
 
