@@ -71,6 +71,7 @@ def write_configfile(remote_path, content=None, filename=None):
 
 def cmd(cmd, sudo=None, local=getattr(env, 'CMD_LOCAL', True)):
     """ run cmd (locally unless local=False) """
+    local = False
     if local:
         if isinstance(sudo, str):
             _local('sudo -u {} bash -c "{}"'.format(sudo, cmd))

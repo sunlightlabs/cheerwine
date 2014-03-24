@@ -1,4 +1,4 @@
-from fabric.api import sudo, settings
+from fabric.api import sudo, settings, env
 from fabric.contrib.files import append
 from ..aws import add_ebs
 from ..server import install
@@ -7,9 +7,12 @@ from .base import Role
 
 
 class Postgres(Role):
-    def __init__(self, size_gb):
+    def __init__(self, size_gb, dbname, dbuser, postgis=False):
         super(Postgres, self).__init__(name='postgres')
         self.size_gb = size_gb
+        self.dbname = dbname
+        self.dbuser = dbuser
+        self.postgis = postgis
 
     def install(self):
         """ configure a server with the latest MongoDB """
@@ -18,27 +21,23 @@ class Postgres(Role):
         append('/etc/apt/sources.list.d/postgresql.list',
                'deb http://apt.postgresql.org/pub/repos/apt/ saucy-pgdg main',
                use_sudo=True)
-        install(['postgresql-9.3', 'postgresql-9.3-postgis-2.1'])
+        sudo('apt-get update')
+        install(['postgresql-9.3', 'postgresql-9.3-postgis-2.1', 'postgresql-server-dev-9.3'])
 
-    def dropdb(self, name):
-        with settings(warn_only=True):
-            cmd('dropdb ' + name, sudo='postgres')
-
-    def createdb(self, name, postgis=True, drop=False):
+    def _createdb(self, name, drop=False):
         if drop:
-            self.dropdb(name)
+            with settings(warn_only=True):
+                cmd('dropdb ' + name, sudo='postgres')
         cmd('createdb ' + name, sudo='postgres')
-        if postgis:
+        if self.postgis:
             cmd('''psql {} -c 'CREATE EXTENSION postgis' '''.format(name), sudo='postgres')
 
-    def dropuser(self, name):
-        with settings(warn_only=True):
-            cmd('dropuser ' + name, sudo='postgres')
-
-    def createuser(self, name, password, drop=False):
+    def _createuser(self, name, drop=False):
         if drop:
-            self.dropuser(name)
-        cmd('''psql -c 'CREATE USER {} with SUPERUSER PASSWORD \$\${}\$\$' '''.format(
-            name, password), sudo='postgres')
+            with settings(warn_only=True):
+                cmd('dropuser ' + name, sudo='postgres')
+        cmd('createuser -P -s ' + name, sudo='postgres')
 
-    _commands = ['install', 'dropdb', 'createdb', 'dropuser', 'createuser']
+    def createdb(self):
+        self._createdb(self.dbname, drop=True)
+        self._createuser(self.dbuser, drop=True)

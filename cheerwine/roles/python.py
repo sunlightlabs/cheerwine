@@ -3,9 +3,10 @@ from fabric.api import sudo
 from fabric.contrib.files import exists
 from ..utils import write_configfile, jinja, add_ebs, _info
 from ..server import install
+from .base import Role
 
 
-class Django(object):
+class Django(Role):
     def __init__(self, name, ebs_size,
                  repos, wsgi_module,
                  python3=False,
@@ -44,7 +45,7 @@ class Django(object):
         return jinja.get_template('uwsgi').render(user=self.name, settings=self.django_settings,
                                                   lines=lines)
 
-    def add_ebs(self):
+    def _add_ebs(self):
         add_ebs(self.ebs_size, '/projects/{}'.format(self.name))
         sudo('useradd {0} --home-dir /projects/{0} --base-dir /etc/skel --shell /bin/bash'.format(
              self.name))
@@ -56,12 +57,8 @@ class Django(object):
         sudo('mkdir -p /projects/{}/data'.format(self.name), user=self.name)
         sudo('mkdir -p /projects/{}/.ssh'.format(self.name), user=self.name)
 
-    def make_venv(self):
+    def _make_venv(self):
         """ make a virtual environment """
-        if self.python3:
-            install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))
-        else:
-            install(['uwsgi-plugin-python', 'python-dev', 'python-virtualenv'])
         dirname = '/projects/{}/virt'.format(self.name)
         if exists(dirname):
             _info('directory {} already exists'.format(dirname))
@@ -90,20 +87,30 @@ class Django(object):
         # nginx stuff
         tmpl = jinja.get_template('nginx')
         nginx_contents = tmpl.render(port=self.port, server_name=self.server_name,
-                                     locations=self.nginx.locations,
+                                     locations=self.nginx_locations,
                                      project_name=self.name)
         write_configfile('/etc/nginx/sites-enabled/{}'.format(self.name),
                          content=nginx_contents)
         self.restart_nginx()
 
     def install_app(self):
-        self.add_ebs()
-        self.make_venv()
+        if self.python3:
+            install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))
+        else:
+            install(['uwsgi-plugin-python', 'python-dev', 'python-virtualenv'])
+        #self._add_ebs()
+        self._make_venv()
         for dirname, repo in self.repos.items():
-            self.checkout(dirname, repo)
+            self._checkout(dirname, repo)
+        for dep in self.dependencies:
+            if dep.startswith('-r '):
+                dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
+            self.pip_install(dep)
+        #write_configfile('/projects/{}/src/{}/
+        #    filename=self.django_settings)
 
     def restart_uwsgi(self):
-        sudo('/etc/init.d/uwsgi restart {0}'.format(self.name))
+        sudo('/etc/init.d/uwsgi restart {}'.format(self.name))
 
     def restart_nginx(self):
         sudo('/etc/init.d/nginx restart')
