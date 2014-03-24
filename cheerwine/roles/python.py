@@ -110,9 +110,17 @@ class Django(Role):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
             self._pip_install(dep)
 
+    def update(self):
+        for dirname in self.repos:
+            self._update(dirname)
+
     def logs(self):
         """ watch the logs """
         sudo('tail -f /projects/{}/logs/*'.format(self.name))
+
+    def script(self, cmd):
+        sudo('export PYTHONPATH={} && cd /projects/{} && src/{}'.format(
+             ':'.join(self.pythonpath), self.name, cmd), user=self.name)
 
     def django(self, cmd):
         sudo('export PYTHONPATH={} && /projects/{}/virt/bin/django-admin.py {} --settings={}'.format(
