@@ -68,13 +68,12 @@ class Django(Role):
                 cmd += ' -p python3'
             sudo(cmd, user=self.name)
 
-    def pip_install(self, package):
+    def _pip_install(self, package):
+        """ install something into the projects virtualenv """
         sudo('source ~{}/virt/bin/activate && pip install {}'.format(self.name, package))
 
-    #def django(self):
-    #    """ run a django command """
-
     def install_server(self):
+        """ install the nginx and uwsgi server """
         # install both and then remove default configured site
         install(['nginx', 'uwsgi'])
         sudo('rm -f /etc/nginx/sites-enabled/default')
@@ -94,6 +93,7 @@ class Django(Role):
         self.restart_nginx()
 
     def install_app(self):
+        """ install the application """
         if self.python3:
             install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))
         else:
@@ -105,12 +105,14 @@ class Django(Role):
         for dep in self.dependencies:
             if dep.startswith('-r '):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
-            self.pip_install(dep)
+            self._pip_install(dep)
         #write_configfile('/projects/{}/src/{}/
         #    filename=self.django_settings)
 
     def restart_uwsgi(self):
+        """ restart the uwsgi process """
         sudo('/etc/init.d/uwsgi restart {}'.format(self.name))
 
     def restart_nginx(self):
+        """ restart the nginx process """
         sudo('/etc/init.d/nginx restart')

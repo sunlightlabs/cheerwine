@@ -39,5 +39,6 @@ class Postgres(Role):
         cmd('createuser -P -s ' + name, sudo='postgres')
 
     def createdb(self):
+        """ create user and db """
         self._createdb(self.dbname, drop=True)
         self._createuser(self.dbuser, drop=True)
