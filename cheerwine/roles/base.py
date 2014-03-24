@@ -1,3 +1,5 @@
+import inspect
+from fabric import state
 from fabric.api import sudo, cd
 from fabric.contrib.files import exists
 from ..utils import _info
@@ -8,6 +10,10 @@ class Role(object):
 
     def __init__(self, name):
         self.name = name
+
+        for member, _ in inspect.getmembers(self, predicate=inspect.ismethod):
+            if not member.startswith('_'):
+                state.commands[self.name + '_' + member] = getattr(self, member)
 
     def _checkout(self, dirname, gitrepo, branch='master'):
         """ check code out into project directory """

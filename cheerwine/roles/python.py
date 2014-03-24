@@ -12,7 +12,7 @@ class Django(Role):
                  python3=False,
                  dependencies=None, django_settings=None, uwsgi_extras=None,
                  server_name=None, port=80, nginx_locations=None):
-        self.name = name
+        super(Django, self).__init__(name)
         self.ebs_size = ebs_size
         self.repos = repos
         self.files = files
