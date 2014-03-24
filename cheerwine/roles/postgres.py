@@ -1,8 +1,7 @@
 from fabric.api import sudo, settings, env
 from fabric.contrib.files import append
-from ..aws import add_ebs
 from ..server import install
-from ..utils import cmd
+from ..utils import cmd, add_ebs
 from .base import Role
 
 

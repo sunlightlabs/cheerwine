@@ -7,14 +7,15 @@ from .base import Role
 
 
 class Django(Role):
-    def __init__(self, name, ebs_size,
-                 repos, wsgi_module,
+    def __init__(self, name, ebs_size, wsgi_module,
+                 repos, files=None,
                  python3=False,
                  dependencies=None, django_settings=None, uwsgi_extras=None,
                  server_name=None, port=80, nginx_locations=None):
         self.name = name
         self.ebs_size = ebs_size
         self.repos = repos
+        self.files = files
         self.python3 = python3
         self.dependencies = dependencies or []
         self.django_settings = django_settings
@@ -102,6 +103,8 @@ class Django(Role):
         self._make_venv()
         for dirname, repo in self.repos.items():
             self._checkout(dirname, repo)
+        for remote, local in self.files.items():
+            write_configfile(remote, filename=local)
         for dep in self.dependencies:
             if dep.startswith('-r '):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
