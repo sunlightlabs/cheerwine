@@ -96,6 +96,10 @@ def _get_ec2_metadata(type):
 
 def add_ebs(size_gb, path, iops=None):
     """ add an EBS device """
+    if contains('/etc/fstab', path):
+        _info('/etc/fstab already contains an entry for ' + path)
+        return False
+
     ec2 = boto.connect_ec2(env.AWS_KEY, env.AWS_SECRET)
     # get ec2 metadata
     zone = _get_ec2_metadata('placement/availability-zone')
@@ -137,3 +141,5 @@ def add_ebs(size_gb, path, iops=None):
     # make & mount
     _sudo('mkdir -p {}'.format(path))
     _sudo('mount {}'.format(path))
+
+    return True

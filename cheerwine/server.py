@@ -53,7 +53,7 @@ def upgrade():
 
 def install(packages):
     """ install a package """
-    sudo('aptitude install -y {0}'.format(' '.join(packages)))
+    sudo('aptitude install -y -q {0}'.format(' '.join(packages)))
 
 
 def install_base(additional):

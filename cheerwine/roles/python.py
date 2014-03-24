@@ -23,11 +23,11 @@ class Django(Role):
         self.port = port
         self.nginx_locations = nginx_locations or []
 
-        pythonpath = [os.path.join(self.projdir, 'src', repo) for repo in self.repos]
+        self.pythonpath = [os.path.join(self.projdir, 'src', repo) for repo in self.repos]
         # log-5xx, log-slow, disable-logging, log-x-forwarded-for, reload-on-rss
         self.uwsgi_settings = {'master': 'true', 'vacuum': 'true', 'chmod-socket': '666',
                                'processes': 4,
-                               'module': wsgi_module, 'pythonpath': pythonpath}
+                               'module': wsgi_module, 'pythonpath': self.pythonpath}
         if uwsgi_extras:
             self.uwsgi_settings.update(uwsgi_extras)
 
@@ -47,16 +47,16 @@ class Django(Role):
                                                   lines=lines)
 
     def _add_ebs(self):
-        add_ebs(self.ebs_size, '/projects/{}'.format(self.name))
-        sudo('useradd {0} --home-dir /projects/{0} --base-dir /etc/skel --shell /bin/bash'.format(
-             self.name))
-        # user should own their homedir
-        sudo('chown {0}:{0} /projects/{0}'.format(self.name))
+        if add_ebs(self.ebs_size, '/projects/{}'.format(self.name)):
+            sudo('useradd {0} --home-dir /projects/{0} --base-dir /etc/skel --shell /bin/bash'.format(
+                 self.name))
+            # user should own their homedir
+            sudo('chown {0}:{0} /projects/{0}'.format(self.name))
 
-        sudo('mkdir -p /projects/{}/logs'.format(self.name), user=self.name)
-        sudo('mkdir -p /projects/{}/src'.format(self.name),  user=self.name)
-        sudo('mkdir -p /projects/{}/data'.format(self.name), user=self.name)
-        sudo('mkdir -p /projects/{}/.ssh'.format(self.name), user=self.name)
+            sudo('mkdir -p /projects/{}/logs'.format(self.name), user=self.name)
+            sudo('mkdir -p /projects/{}/src'.format(self.name),  user=self.name)
+            sudo('mkdir -p /projects/{}/data'.format(self.name), user=self.name)
+            sudo('mkdir -p /projects/{}/.ssh'.format(self.name), user=self.name)
 
     def _make_venv(self):
         """ make a virtual environment """
@@ -82,7 +82,7 @@ class Django(Role):
         # uwsgi stuff
         write_configfile('/etc/uwsgi/apps-enabled/{}.ini'.format(self.name),
                          content=self._uwsgi_ini())
-        self.restart_uwsgi()
+        self.restart()
 
         # nginx stuff
         tmpl = jinja.get_template('nginx')
@@ -99,7 +99,7 @@ class Django(Role):
             install(('python3', 'uwsgi-plugin-python3', 'python3-dev', 'python-virtualenv'))
         else:
             install(['uwsgi-plugin-python', 'python-dev', 'python-virtualenv'])
-        #self._add_ebs()
+        self._add_ebs()
         self._make_venv()
         for dirname, repo in self.repos.items():
             self._checkout(dirname, repo)
@@ -109,10 +109,16 @@ class Django(Role):
             if dep.startswith('-r '):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
             self._pip_install(dep)
-        #write_configfile('/projects/{}/src/{}/
-        #    filename=self.django_settings)
 
-    def restart_uwsgi(self):
+    def logs(self):
+        """ watch the logs """
+        sudo('tail -f /projects/{}/logs/*'.format(self.name))
+
+    def django(self, cmd):
+        sudo('export PYTHONPATH={} && /projects/{}/virt/bin/django-admin.py {} --settings={}'.format(
+             ':'.join(self.pythonpath), self.name, cmd, self.django_settings), user=self.name)
+
+    def restart(self):
         """ restart the uwsgi process """
         sudo('/etc/init.d/uwsgi restart {}'.format(self.name))
 
