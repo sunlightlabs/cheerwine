@@ -118,7 +118,7 @@ class Django(Role):
         """ watch the logs """
         sudo('tail -f /projects/{}/logs/*'.format(self.name))
 
-    def script(self, cmd):
+    def script(self, cmd, workdir=None):
         if not workdir:
             workdir = '/projects/' + self.name
         sudo('export PYTHONPATH={} && cd {} && src/{}'.format(
@@ -129,7 +129,7 @@ class Django(Role):
             workdir = '/projects/' + self.name
         sudo('export PYTHONPATH={} && cd {} && /projects/{}/virt/bin/django-admin.py {} --settings={}'.format(
              ':'.join(self.pythonpath), workdir, self.name, cmd, self.django_settings),
-            user=self.name)
+             user=self.name)
 
     def restart(self):
         """ restart the uwsgi process """

@@ -1,4 +1,4 @@
-from fabric.api import sudo, settings, env
+from fabric.api import sudo, settings
 from fabric.contrib.files import append
 from ..server import install
 from ..utils import cmd, add_ebs

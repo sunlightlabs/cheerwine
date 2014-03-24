@@ -1,3 +1,3 @@
-from .postgres import Postgres
-from .python import Django
-from .mongo import Mongo
+from .postgres import Postgres  # noqa
+from .python import Django      # noqa
+from .mongo import Mongo        # noqa
