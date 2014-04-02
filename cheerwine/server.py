@@ -1,4 +1,4 @@
-from fabric.api import run, prompt, sudo, hide, abort
+from fabric.api import run, prompt, sudo, hide, abort, settings,  hide
 from fabric.colors import red
 from .utils import _info, _good, copy_dir, write_configfile
 
@@ -59,3 +59,10 @@ def install(packages):
 def install_base(additional):
     upgrade()
     install(('xfsprogs', 'build-essential', 'git', 'mercurial') + tuple(additional))
+
+
+def write_cron(cronlines, proj):
+    with settings(hide('running', 'stderr', 'stdout', 'warnings'), warn_only=True):
+        sudo('crontab -u {0} -l > /tmp/crondump-{0}'.format(proj))
+    write_configfile('/tmp/crondump-' + proj, cronlines + '\n')
+    sudo('cat /tmp/crondump-{0} | sudo crontab -u {0} -'.format(proj))

@@ -4,14 +4,3 @@ Munin
     restart munin-node
     add a file to munin:/etc/munin/munin-conf.d
     [openstates;atlanta]\n address 10.x.y.z
-
-Cron
-    if os.path.exists(cron_config):
-        # copy cron over, update it, and drop it
-        put(cron_config, '/tmp/croncfg')
-        sudo('cat /tmp/croncfg | crontab -', user=env.projname)
-        sudo('rm /tmp/croncfg')
-
-    with settings(hide('running', 'stderr', 'stdout', 'warnings'), warn_only=True):
-        sudo('crontab -l > /tmp/crondump-{0}'.format(env.projname), user=env.projname)
-    _remotediff(cron_config, '/tmp/crondump-{0}'.format(env.projname))
