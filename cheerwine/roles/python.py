@@ -1,5 +1,5 @@
 import os
-from fabric.api import sudo
+from fabric.api import env, sudo, local
 from fabric.contrib.files import exists
 from ..utils import write_configfile, jinja, add_ebs, _info
 from ..server import install
@@ -103,8 +103,8 @@ class Django(Role):
         self._make_venv()
         for dirname, repo in self.repos.items():
             self._checkout(dirname, repo)
-        for remote, local in self.files.items():
-            write_configfile(remote, filename=local)
+        for remote, localname in self.files.items():
+            write_configfile(remote, filename=os.path.join(env.configdir, localname))
         for dep in self.dependencies:
             if dep.startswith('-r '):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
@@ -119,17 +119,23 @@ class Django(Role):
         sudo('tail -f /projects/{}/logs/*'.format(self.name))
 
     def script(self, cmd, workdir=None):
-        if not workdir:
-            workdir = '/projects/' + self.name
-        sudo('export PYTHONPATH={} && cd {} && src/{}'.format(
-             ':'.join(self.pythonpath), workdir, cmd), user=self.name)
+        if env.host_string == 'localhost':
+            local('~/.virtualenvs/api3/bin/python {}'.format(cmd))
+        else:
+            if not workdir:
+                workdir = '/projects/' + self.name
+            sudo('export PYTHONPATH={} && cd {} && src/{}'.format(
+                 ':'.join(self.pythonpath), workdir, cmd), user=self.name)
 
     def django(self, cmd, workdir=None):
-        if not workdir:
-            workdir = '/projects/' + self.name
-        sudo('export PYTHONPATH={} && cd {} && /projects/{}/virt/bin/django-admin.py {} --settings={}'.format(
-             ':'.join(self.pythonpath), workdir, self.name, cmd, self.django_settings),
-             user=self.name)
+        if env.host_string == 'localhost':
+            local('~/.virtualenvs/api3/bin/django-admin.py {} --settings={}'.format(cmd, self.django_settings))
+        else:
+            if not workdir:
+                workdir = '/projects/' + self.name
+            sudo('export PYTHONPATH={} && cd {} && /projects/{}/virt/bin/django-admin.py {} --settings={}'.format(
+                 ':'.join(self.pythonpath), workdir, self.name, cmd, self.django_settings),
+                 user=self.name)
 
     def restart(self):
         """ restart the uwsgi process """

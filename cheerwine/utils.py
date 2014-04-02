@@ -2,7 +2,7 @@ import os
 import time
 import boto
 import tempfile
-from fabric.api import puts, put, hide, get, settings, prompt, env, abort, run, local
+from fabric.api import puts, put, hide, get, settings, prompt, env, abort, run, local, sudo
 from fabric.contrib.files import exists, contains, append
 from fabric.colors import red, green, cyan
 from jinja2 import Environment, PackageLoader

@@ -1,5 +1,3 @@
-* Fix local running, or remove it and get it working with localhost
-
 Munin
     install 'munin-node'
     edit local /etc/munin/munin-node.conf to allow access from munin
