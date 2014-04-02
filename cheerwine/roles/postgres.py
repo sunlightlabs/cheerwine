@@ -1,7 +1,7 @@
-from fabric.api import sudo, settings
+from fabric.api import sudo, settings, env
 from fabric.contrib.files import append
 from ..server import install
-from ..utils import cmd, add_ebs
+from ..utils import add_ebs, is_localhost
 from .base import Role
 
 
@@ -15,7 +15,8 @@ class Postgres(Role):
 
     def install(self):
         """ configure a server with the latest MongoDB """
-        add_ebs(self.size_gb, '/var/lib/postgresql/')
+        if not is_localhost():
+            add_ebs(self.size_gb, '/var/lib/postgresql/')
         sudo('apt-key adv --keyserver keyserver.ubuntu.com --recv ACCC4CF8')
         append('/etc/apt/sources.list.d/postgresql.list',
                'deb http://apt.postgresql.org/pub/repos/apt/ saucy-pgdg main',
@@ -26,16 +27,16 @@ class Postgres(Role):
     def _createdb(self, name, drop=False):
         if drop:
             with settings(warn_only=True):
-                cmd('dropdb ' + name, sudo='postgres')
-        cmd('createdb ' + name, sudo='postgres')
+                sudo('dropdb ' + name, user='postgres')
+        sudo('createdb ' + name, user='postgres')
         if self.postgis:
-            cmd('''psql {} -c 'CREATE EXTENSION postgis' '''.format(name), sudo='postgres')
+            sudo('''psql {} -c 'CREATE EXTENSION postgis' '''.format(name), user='postgres')
 
     def _createuser(self, name, drop=False):
         if drop:
             with settings(warn_only=True):
-                cmd('dropuser ' + name, sudo='postgres')
-        cmd('createuser -P -s ' + name, sudo='postgres')
+                sudo('dropuser ' + name, user='postgres')
+        sudo('createuser -P -s ' + name, user='postgres')
 
     def createdb(self):
         """ create user and db """

@@ -2,11 +2,8 @@ import os
 import time
 import boto
 import tempfile
-from fabric.api import puts, put, hide, get, settings, prompt, env, abort
+from fabric.api import puts, put, hide, get, settings, prompt, env, abort, run, local
 from fabric.contrib.files import exists, contains, append
-from fabric.api import sudo as _sudo
-from fabric.api import local as _local
-from fabric.api import run as _run
 from fabric.colors import red, green, cyan
 from jinja2 import Environment, PackageLoader
 
@@ -24,14 +21,14 @@ def copy_dir(local_dir, remote_dir, user=None):
         # try and create directory if there are files to be put here
         if files:
             remote_root = os.path.join(remote_dir, root.replace(local_dir, ''))
-            _sudo('mkdir -p {0}'.format(remote_root), user=user)
+            sudo('mkdir -p {0}'.format(remote_root), user=user)
 
             # copy over files
             for file in files:
                 remote_file = os.path.join(remote_root, file)
                 put(os.path.join(root, file), remote_file, use_sudo=True, mirror_local_mode=True)
                 if user:
-                    _sudo('chown {0}:{0} {1}'.format(user, remote_file))
+                    sudo('chown {0}:{0} {1}'.format(user, remote_file))
 
 
 def write_configfile(remote_path, content=None, filename=None):
@@ -50,7 +47,7 @@ def write_configfile(remote_path, content=None, filename=None):
         if exists(remote_path):
             get(remote_path, old)
             with settings(hide('warnings'), warn_only=True):
-                res = _local('diff {} {}'.format(old, filename), capture=True)
+                res = local('diff {} {}'.format(old, filename), capture=True)
             if res.failed:
                 _bad('files differ')
                 puts(res, show_prefix=False)
@@ -69,28 +66,17 @@ def write_configfile(remote_path, content=None, filename=None):
         os.remove(filename)
 
 
-def cmd(cmd, sudo=None, local=getattr(env, 'CMD_LOCAL', True)):
-    """ run cmd (locally unless local=False) """
-    local = False
-    if local:
-        if isinstance(sudo, str):
-            _local('sudo -u {} bash -c "{}"'.format(sudo, cmd))
-        elif sudo:
-            _local('sudo bash -c "{}"'.format(cmd))
-        else:
-            _local(cmd)
-    else:
-        if isinstance(sudo, str):
-            _sudo(cmd, user=sudo)
-        elif sudo:
-            _sudo(cmd)
-        else:
-            _run(cmd)
+def is_localhost():
+    if not hasattr(env, '_localhost_mode'):
+        with hide('running', 'stdout'):
+            run('echo ""')
+        env._localhost_mode = env.host == 'localhost'
+    return env._localhost_mode
 
 
 def _get_ec2_metadata(type):
     with hide('running', 'stdout',  'stderr'):
-        r = _sudo('wget -q -O - http://169.254.169.254/latest/meta-data/{}'.format(type))
+        r = sudo('wget -q -O - http://169.254.169.254/latest/meta-data/{}'.format(type))
         return r
 
 
@@ -135,11 +121,11 @@ def add_ebs(size_gb, path, iops=None):
         time.sleep(1)
 
     # format and mount the drive
-    _sudo('mkfs.xfs {}'.format(drv))
+    sudo('mkfs.xfs {}'.format(drv))
     append('/etc/fstab', '{0} {1} xfs defaults 0 0'.format(drv, path), use_sudo=True)
 
     # make & mount
-    _sudo('mkdir -p {}'.format(path))
-    _sudo('mount {}'.format(path))
+    sudo('mkdir -p {}'.format(path))
+    sudo('mount {}'.format(path))
 
     return True
