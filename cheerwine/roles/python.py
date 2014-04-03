@@ -104,7 +104,7 @@ class Django(Role):
         for dirname, repo in self.repos.items():
             self._checkout(dirname, repo)
         for remote, localname in self.files.items():
-            write_configfile(remote, filename=os.path.join(env.configdir, localname))
+            write_configfile(remote, filename=self._filename(localname))
         for dep in self.dependencies:
             if dep.startswith('-r '):
                 dep = '-r ' + os.path.join('/projects', self.name, 'src', dep.split()[1])
