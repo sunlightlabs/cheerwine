@@ -6,6 +6,7 @@ from fabric.contrib.files import exists
 from ..utils import _info
 from ..config import _assert_configdir
 
+
 class Role(object):
     """ base class for roles """
 

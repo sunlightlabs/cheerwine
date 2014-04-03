@@ -1,4 +1,4 @@
-from fabric.api import run, prompt, sudo, hide, abort, settings,  hide
+from fabric.api import run, prompt, sudo, hide, abort, settings
 from fabric.colors import red
 from .utils import _info, _good, copy_dir, write_configfile
 

@@ -129,3 +129,10 @@ def add_ebs(size_gb, path, iops=None):
     sudo('mount {}'.format(path))
 
     return True
+
+
+def assert_configdir():
+    if not getattr(env, 'configdir', None):
+        _bad('config directory is not set, call production or staging')
+        abort('no config directory set')
+    return env.configdir

@@ -1,6 +1,6 @@
 import os
 from fabric.api import env
-from cheerwine.config import filename, load_env, production, staging
+from cheerwine.config import production, staging
 
 
 def test_production():

@@ -1,18 +1,12 @@
 import os
+from fabric.api import task, env
 from ConfigParser import SafeConfigParser
-from fabric.api import env, task, abort
-from .utils import _bad
-
-def _assert_configdir():
-    if not getattr(env, 'configdir', None):
-        _bad('config directory is not set, call production or staging')
-        abort('no config directory set')
-    return env.configdir
+from .utils import assert_configdir
 
 
-def load_env():
+def _load_env():
     parser = SafeConfigParser()
-    parser.read(os.path.join(_assert_configdir(), 'env.ini'))
+    parser.read(os.path.join(assert_configdir(), 'env.ini'))
     for opt in parser.options('env'):
         setattr(env, opt, parser.get('env', opt))
 
@@ -21,11 +15,11 @@ def load_env():
 def production():
     env.configdir = os.environ.get('CHEERWINE_CONFIG_PATH')
     env.mode = 'production'
-    load_env()
+    _load_env()
 
 
 @task
 def staging():
     env.configdir = os.environ.get('CHEERWINE_CONFIG_PATH')
     env.mode = 'staging'
-    load_env()
+    _load_env()
