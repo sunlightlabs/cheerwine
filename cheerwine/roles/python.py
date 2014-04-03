@@ -11,7 +11,8 @@ class Django(Role):
                  repos, files=None,
                  python3=False,
                  dependencies=None, django_settings=None, uwsgi_extras=None,
-                 server_name=None, port=80, nginx_locations=None):
+                 server_name=None, port=80, nginx_locations=None,
+                 ssl_cert=None, ssl_key=None):
         super(Django, self).__init__(name)
         self.ebs_size = ebs_size
         self.repos = repos
@@ -21,7 +22,9 @@ class Django(Role):
         self.django_settings = django_settings
         self.server_name = server_name
         self.port = port
-        self.nginx_locations = nginx_locations or []
+        self.nginx_locations = nginx_locations or {}
+        self.ssl_cert = ssl_cert
+        self.ssl_key = ssl_key
 
         self.pythonpath = [os.path.join(self.projdir, 'src', repo) for repo in self.repos]
         # log-5xx, log-slow, disable-logging, log-x-forwarded-for, reload-on-rss
@@ -88,7 +91,8 @@ class Django(Role):
         tmpl = jinja.get_template('nginx')
         nginx_contents = tmpl.render(port=self.port, server_name=self.server_name,
                                      locations=self.nginx_locations,
-                                     project_name=self.name)
+                                     project_name=self.name,
+                                     ssl_cert=self.ssl_cert, ssl_key=self.ssl_key)
         write_configfile('/etc/nginx/sites-enabled/{}'.format(self.name),
                          content=nginx_contents)
         self.restart_nginx()
