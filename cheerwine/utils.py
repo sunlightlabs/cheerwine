@@ -86,7 +86,7 @@ def add_ebs(size_gb, path, iops=None):
         _info('/etc/fstab already contains an entry for ' + path)
         return False
 
-    ec2 = boto.connect_ec2(env.AWS_KEY, env.AWS_SECRET)
+    ec2 = boto.connect_ec2(env.aws_key, env.aws_secret)
     # get ec2 metadata
     zone = _get_ec2_metadata('placement/availability-zone')
     instance_id = _get_ec2_metadata('instance-id')
